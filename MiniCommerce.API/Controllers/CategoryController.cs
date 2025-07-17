@@ -33,7 +33,7 @@ public class CategoryController(ISender sender) : ControllerBase
     public async Task<IActionResult> Create(CreateCategoryCommand command)
     {
         var result = await sender.Send(command);
-        if (result == 0)
+        if (result.IsFailure)
             return BadRequest();
         
         return Ok();
@@ -57,9 +57,9 @@ public class CategoryController(ISender sender) : ControllerBase
         var query = new GetByIdCategoryQuery(id);
         var result = await sender.Send(query);
         
-        if (result is null)
-            return NotFound();
+        if (result.IsFailure)
+            return NotFound(result.Error);
         
-        return Ok(result);
+        return Ok(result.Value);
     }
 }

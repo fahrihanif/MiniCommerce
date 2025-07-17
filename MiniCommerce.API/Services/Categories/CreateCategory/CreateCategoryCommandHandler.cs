@@ -1,13 +1,14 @@
 using MediatR;
+using MiniCommerce.API.Common;
 using MiniCommerce.API.Contracts;
 using MiniCommerce.API.Entities;
 
 namespace MiniCommerce.API.Services.Categories.CreateCategory;
 
 public class CreateCategoryCommandHandler(ICategoryRepository categoryRepository, IUnitOfWork unitOfWork)
-    : IRequestHandler<CreateCategoryCommand, int>
+    : ICommandHandler<CreateCategoryCommand, int>
 {
-    public async Task<int> Handle(CreateCategoryCommand request, 
+    public async Task<Result<int>> Handle(CreateCategoryCommand request, 
         CancellationToken cancellationToken)
     {
         var category = new Category
@@ -19,6 +20,6 @@ public class CreateCategoryCommandHandler(ICategoryRepository categoryRepository
         await categoryRepository.CreateAsync(category, cancellationToken);
         var result = await unitOfWork.SaveChangesAsync(cancellationToken);
         
-        return result;
+        return Result.Success(result);
     }
 }

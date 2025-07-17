@@ -1,3 +1,4 @@
+using FluentValidation;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using MiniCommerce.API.Behaviours;
@@ -15,8 +16,14 @@ public static class DependencyInjection
     public static IServiceCollection AddApplication(this IServiceCollection services)
     {
         // Add this line to register MediatR services
-        services.AddMediatR(cfg => 
-            cfg.RegisterServicesFromAssembly(typeof(Program).Assembly));
+        services.AddMediatR(cfg =>
+        {
+            cfg.RegisterServicesFromAssembly(typeof(Program).Assembly);
+
+            cfg.AddBehavior(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
+        });
+        
+        services.AddValidatorsFromAssembly(typeof(DependencyInjection).Assembly, includeInternalTypes: true);
         
         return services;
     }
@@ -80,6 +87,8 @@ public static class DependencyInjection
     {
         // <-- Register Middlewares
         services.AddScoped<RequestContextLoggingMiddleware>();
+        services.AddExceptionHandler<ExceptionHandlerMiddleware>();
+        services.AddProblemDetails();
 
         // <-- Register Extensions
         services.AddScoped<IMigrationExtension, MigrationExtension>();
