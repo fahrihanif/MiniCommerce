@@ -13,9 +13,12 @@ namespace MiniCommerce.API.Controllers;
 public class CategoryController(ISender sender) : ControllerBase
 {
     [HttpPut]
-    public async Task<IActionResult> Handle(UpdateCategoryCommand command)
+    public async Task<IActionResult> Update(UpdateCategoryCommand command)
     {
-        await sender.Send(command);
+        var result = await sender.Send(command);
+        
+        if (result.IsFailure)
+            return NotFound(result.Error);
         
         return Ok();
     }
@@ -24,7 +27,10 @@ public class CategoryController(ISender sender) : ControllerBase
     public async Task<IActionResult> Delete(Guid id)
     {
         var command = new DeleteCategoryCommand(id);
-        await sender.Send(command);
+        var result = await sender.Send(command);
+        
+        if (result.IsFailure)
+            return NotFound(result.Error);
         
         return Ok();
     }
@@ -32,9 +38,7 @@ public class CategoryController(ISender sender) : ControllerBase
     [HttpPost]
     public async Task<IActionResult> Create(CreateCategoryCommand command)
     {
-        var result = await sender.Send(command);
-        if (result == 0)
-            return BadRequest();
+        await sender.Send(command);
         
         return Ok();
     }
@@ -45,10 +49,10 @@ public class CategoryController(ISender sender) : ControllerBase
         var query = new GetAllCategoryQuery();
         var result = await sender.Send(query);
         
-        if (!result.Any())
-            return NotFound();
+        if (result.IsFailure)
+            return NotFound(result.Error);
         
-        return Ok(result);
+        return Ok(result.Value);
     }
 
     [HttpGet("{id}")]
@@ -57,9 +61,9 @@ public class CategoryController(ISender sender) : ControllerBase
         var query = new GetByIdCategoryQuery(id);
         var result = await sender.Send(query);
         
-        if (result is null)
-            return NotFound();
+        if (result.IsFailure)
+            return NotFound(result.Error);
         
-        return Ok(result);
+        return Ok(result.Value);
     }
 }

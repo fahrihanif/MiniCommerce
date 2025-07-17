@@ -1,10 +1,11 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using MiniCommerce.API.Abstractions.Messages;
 using MiniCommerce.API.Data;
 
 namespace MiniCommerce.API.Services.Categories.GetAllCategory;
 
-public class GetAllCategoryQueryHandler : IRequestHandler<GetAllCategoryQuery, IEnumerable<GetCategoryResponse>>
+public class GetAllCategoryQueryHandler : IQueryHandler<GetAllCategoryQuery, IEnumerable<GetCategoryResponse>>
 {
     private readonly ApplicationDbContext _context;
 
@@ -13,10 +14,15 @@ public class GetAllCategoryQueryHandler : IRequestHandler<GetAllCategoryQuery, I
         _context = context;
     }
 
-    public async Task<IEnumerable<GetCategoryResponse>> Handle(GetAllCategoryQuery request, CancellationToken cancellationToken)
+    public async Task<Result<IEnumerable<GetCategoryResponse>>> Handle(GetAllCategoryQuery request, CancellationToken cancellationToken)
     {
         var categories = await _context.Categories.ToListAsync(cancellationToken);
         
-        return categories.Select(c => new GetCategoryResponse(c.Id, c.Name));
+        if (!categories.Any())
+            Result.Failure<IEnumerable<GetCategoryResponse>>(CategoryErrors.InvalidId);
+        
+        var mapToCategoryResponse = categories.Select(c => new GetCategoryResponse(c.Id, c.Name));
+        
+        return Result.Success(mapToCategoryResponse);
     }
 }

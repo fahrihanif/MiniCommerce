@@ -1,6 +1,8 @@
+using FluentValidation;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
-using MiniCommerce.API.Behaviours;
+using MiniCommerce.API.Abstractions.Behaviours;
+using MiniCommerce.API.Abstractions.Handlers;
 using MiniCommerce.API.Contracts;
 using MiniCommerce.API.Data;
 using MiniCommerce.API.Extensions;
@@ -15,8 +17,15 @@ public static class DependencyInjection
     public static IServiceCollection AddApplication(this IServiceCollection services)
     {
         // Add this line to register MediatR services
-        services.AddMediatR(cfg => 
-            cfg.RegisterServicesFromAssembly(typeof(Program).Assembly));
+        services.AddMediatR(cfg =>
+        {
+            cfg.RegisterServicesFromAssembly(typeof(Program).Assembly);
+
+            cfg.AddBehavior(typeof(IPipelineBehavior<,>), typeof(ValidationBehaviour<,>));
+        });
+        
+        services.AddValidatorsFromAssembly(typeof(DependencyInjection).Assembly, 
+            includeInternalTypes: true);
         
         return services;
     }
@@ -40,6 +49,10 @@ public static class DependencyInjection
         // <-- Register Unit Of Work
         services.AddScoped<IUnitOfWork>(c => c.GetRequiredService<ApplicationDbContext>());
 
+        // <-- Register Email Handler
+        services.Configure<EmailSetting>(configuration.GetSection("EmailSettings"));
+        services.AddTransient<IEmailHandler, EmailHandler>();
+        
         return services;
     }
 
@@ -80,9 +93,12 @@ public static class DependencyInjection
     {
         // <-- Register Middlewares
         services.AddScoped<RequestContextLoggingMiddleware>();
+        services.AddExceptionHandler<ExceptionHandlerMiddleware>();
+        services.AddProblemDetails();
 
         // <-- Register Extensions
         services.AddScoped<IMigrationExtension, MigrationExtension>();
+        
         
         return services;
     }

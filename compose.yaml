@@ -1,11 +1,17 @@
 ﻿services:
   minicommerce.api:
     image: minicommerce.api
+    container_name: minicommerce.api
     build:
       context: .
       dockerfile: MiniCommerce.API/Dockerfile
-      
-  sqlserver:
-    image: mcr.microsoft.com/mssql/server:2022-latest
-    
 
+  minicommerce.seq:
+    image: datalust/seq:latest
+    container_name: minicommerce.seq
+    environment:
+      - ACCEPT_EULA=Y
+      - SEQ_FIRSTRUN_ADMINPASSWORDHASH="$PH"
+    ports:
+      - 5341:5341
+      - 8081:80

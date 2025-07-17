@@ -24,6 +24,6 @@ public class AccountConfiguration : IEntityTypeConfiguration<Account>
             .IsRequired();
         
         builder.Property(a => a.RefreshToken)
-            .HasMaxLength(50);
+            .IsRequired(false);
     }
 }
