@@ -2,6 +2,7 @@ using FluentValidation;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using MiniCommerce.API.Behaviours;
+using MiniCommerce.API.Common;
 using MiniCommerce.API.Contracts;
 using MiniCommerce.API.Data;
 using MiniCommerce.API.Extensions;
@@ -47,6 +48,12 @@ public static class DependencyInjection
         // <-- Register Unit Of Work
         services.AddScoped<IUnitOfWork>(c => c.GetRequiredService<ApplicationDbContext>());
 
+        // Configure EmailSettings from appsettings.json
+        services.Configure<EmailSettings>(configuration.GetSection("EmailSettings"));
+
+        // Register the EmailService for dependency injection
+        services.AddTransient<IEmailService, EmailService>();
+        
         return services;
     }
 
