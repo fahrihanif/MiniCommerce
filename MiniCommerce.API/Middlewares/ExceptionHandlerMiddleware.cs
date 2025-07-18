@@ -1,36 +1,41 @@
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
-using MiniCommerce.API.Common;
+using MiniCommerce.API.Abstractions.Behaviours;
 
 namespace MiniCommerce.API.Middlewares;
 
-internal sealed class ExceptionHandlerMiddleware(ILogger<ExceptionHandlerMiddleware> logger)
-    : IExceptionHandler
+public class ExceptionHandlerMiddleware : IExceptionHandler
 {
-    public async ValueTask<bool> TryHandleAsync(HttpContext httpContext, Exception exception,
+    private readonly ILogger<ExceptionHandlerMiddleware> _logger;
+
+    public ExceptionHandlerMiddleware(ILogger<ExceptionHandlerMiddleware> logger)
+    {
+        _logger = logger;
+    }
+
+    public async ValueTask<bool> TryHandleAsync(
+        HttpContext httpContext, 
+        Exception exception, 
         CancellationToken cancellationToken)
     {
-        logger.LogError(exception, "Exception occurred: {Message}", exception.Message);
+        _logger.LogError(exception, "Exception occured: {Message}", exception.Message);
 
         ExceptionDetails exceptionDetails = GetExceptionDetails(exception);
 
         var problemDetails = new ProblemDetails
         {
             Status = exceptionDetails.Status,
-            Type = exceptionDetails.Type,
             Title = exceptionDetails.Title,
             Detail = exceptionDetails.Detail,
         };
-
+        
         if (exceptionDetails.Errors is not null)
-        {
             problemDetails.Extensions["errors"] = exceptionDetails.Errors;
-        }
-
+        
         httpContext.Response.StatusCode = exceptionDetails.Status;
-
+        
         await httpContext.Response.WriteAsJsonAsync(problemDetails, cancellationToken);
-
+        
         return true;
     }
 
@@ -38,25 +43,25 @@ internal sealed class ExceptionHandlerMiddleware(ILogger<ExceptionHandlerMiddlew
     {
         return exception switch
         {
-            ValidationException validationException => new ExceptionDetails(
+            ValidationException validation => new ExceptionDetails(
                 StatusCodes.Status400BadRequest,
                 "ValidationFailure",
                 "Validation error",
-                "One or more validation errors has occurred",
-                validationException.Errors),
+                "One or more validation errors occurred.",
+                validation.Errors),
             _ => new ExceptionDetails(
                 StatusCodes.Status500InternalServerError,
-                "ServerError",
-                "Server error",
-                "An unexpected error has occurred",
+                "InternalServerError",
+                "Internal server error",
+                "An unexpected error occurred.",
                 null)
         };
     }
-
-    internal sealed record ExceptionDetails(
-        int Status,
-        string Type,
-        string Title,
-        string Detail,
-        IEnumerable<object>? Errors);
 }
+
+internal sealed record ExceptionDetails(
+    int Status, 
+    string Type,
+    string Title,
+    string Detail,
+    IEnumerable<object?> Errors);

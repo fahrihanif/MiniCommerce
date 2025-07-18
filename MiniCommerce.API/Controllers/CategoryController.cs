@@ -1,4 +1,5 @@
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MiniCommerce.API.Services.Categories.CreateCategory;
 using MiniCommerce.API.Services.Categories.DeleteCategory;
@@ -10,12 +11,16 @@ namespace MiniCommerce.API.Controllers;
 
 [ApiController]
 [Route("api/categories")]
+[Authorize]
 public class CategoryController(ISender sender) : ControllerBase
 {
     [HttpPut]
-    public async Task<IActionResult> Handle(UpdateCategoryCommand command)
+    public async Task<IActionResult> Update(UpdateCategoryCommand command)
     {
-        await sender.Send(command);
+        var result = await sender.Send(command);
+        
+        if (result.IsFailure)
+            return NotFound(result.Error);
         
         return Ok();
     }
@@ -24,31 +29,43 @@ public class CategoryController(ISender sender) : ControllerBase
     public async Task<IActionResult> Delete(Guid id)
     {
         var command = new DeleteCategoryCommand(id);
-        await sender.Send(command);
+        var result = await sender.Send(command);
+        
+        if (result.IsFailure)
+            return NotFound(result.Error);
         
         return Ok();
     }
     
+    [Authorize(Roles = "Admin")]
     [HttpPost]
     public async Task<IActionResult> Create(CreateCategoryCommand command)
     {
-        var result = await sender.Send(command);
-        if (result.IsFailure)
-            return BadRequest();
+        await sender.Send(command);
         
         return Ok();
     }
 
+    
+    /// <summary>
+    /// Get all category data.
+    /// </summary>
+    /// <remarks>
+    /// This endpoint allows to Get all Data
+    /// </remarks>
+    /// <returns>Category Data</returns>
     [HttpGet]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> GetAll()
     {
         var query = new GetAllCategoryQuery();
         var result = await sender.Send(query);
         
-        if (!result.Any())
-            return NotFound();
+        if (result.IsFailure)
+            return NotFound(result.Error);
         
-        return Ok(result);
+        return Ok(result.Value);
     }
 
     [HttpGet("{id}")]

@@ -14,7 +14,8 @@ builder.Services
     .AddPresentation()
     .AddApplication()
     .AddSerilogConfiguration(builder.Host)
-    .AddMiddlewareExtension();
+    .AddMiddlewareExtension()
+    .AddJwtAuthentication(builder.Configuration);
 
 var app = builder.Build();
 
@@ -38,6 +39,8 @@ app.UseHttpsRedirection();
 app.UseExceptionHandler();
 
 app.UseCors();
+
+app.UseAuthentication();
 
 app.UseAuthorization();
 

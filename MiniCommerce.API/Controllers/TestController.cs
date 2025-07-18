@@ -1,27 +1,27 @@
 using Microsoft.AspNetCore.Mvc;
-using MiniCommerce.API.Common;
+using MiniCommerce.API.Abstractions.Handlers;
 
 namespace MiniCommerce.API.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
+[Route("/api/[controller]")]
 public class TestController : ControllerBase
 {
-    private readonly IEmailService _emailService;
+    private readonly IEmailHandler  _emailHandler;
 
-    public TestController(IEmailService emailService)
+    public TestController(IEmailHandler emailHandler)
     {
-        _emailService = emailService;
+        _emailHandler = emailHandler;
     }
 
-    [HttpPost("send-test-email")]
+    [HttpPost]
     public async Task<IActionResult> SendTestEmail()
     {
-        var subject = "Hello from MailKit!";
-        var body = "<h1>Test Email</h1><p>This is a test email sent from our .NET application and captured by smtp4dev.</p>";
-
-        await _emailService.SendEmailAsync("test.recipient@example.com", subject, body);
-
-        return Ok("Test email sent successfully! Check smtp4dev.");
+        var subject = "Hello from MiniCommerce";
+        var body = "<h1>Test email</h1><p>This is a test</p>";
+        
+        await _emailHandler.SendEmailAsync("Hanif", "hanif@mail.com", subject, body);
+        
+        return Ok();
     }
 }

@@ -1,14 +1,14 @@
 using MediatR;
-using MiniCommerce.API.Common;
+using MiniCommerce.API.Abstractions.Messages;
 using MiniCommerce.API.Contracts;
 using MiniCommerce.API.Entities;
 
 namespace MiniCommerce.API.Services.Categories.CreateCategory;
 
 public class CreateCategoryCommandHandler(ICategoryRepository categoryRepository, IUnitOfWork unitOfWork)
-    : ICommandHandler<CreateCategoryCommand, int>
+    : ICommandHandler<CreateCategoryCommand>
 {
-    public async Task<Result<int>> Handle(CreateCategoryCommand request, 
+    public async Task<Result> Handle(CreateCategoryCommand request, 
         CancellationToken cancellationToken)
     {
         var category = new Category
