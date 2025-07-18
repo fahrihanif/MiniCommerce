@@ -9,3 +9,6 @@ public record RegisterCommand(
     string Address,
     string Email,
     string Password) : ICommand;
+    
+    
+    

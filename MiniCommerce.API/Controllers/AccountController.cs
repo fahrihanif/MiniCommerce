@@ -1,4 +1,5 @@
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MiniCommerce.API.Services.Accounts.Login;
 using MiniCommerce.API.Services.Accounts.Register;
@@ -8,6 +9,7 @@ namespace MiniCommerce.API.Controllers;
 
 [ApiController]
 [Route("api/accounts")]
+[Authorize]
 public class AccountController : ControllerBase
 {
     private readonly ISender  _sender;
@@ -17,6 +19,7 @@ public class AccountController : ControllerBase
         _sender = sender;
     }
 
+    [AllowAnonymous]
     [HttpPost("login")]
     public async Task<IActionResult> Login(LoginCommand command)
     {
@@ -24,9 +27,10 @@ public class AccountController : ControllerBase
         if (result.IsFailure)
             return BadRequest(result.Error);
         
-        return Ok();
+        return Ok(result.Value);
     }
 
+    [AllowAnonymous]
     [HttpPost("register")]
     public async Task<IActionResult> Register(RegisterCommand command)
     {
@@ -35,6 +39,7 @@ public class AccountController : ControllerBase
         return Ok();
     }
 
+    [AllowAnonymous]
     [HttpGet("verify")]
     public async Task<IActionResult> Verify([FromQuery]string token)
     {

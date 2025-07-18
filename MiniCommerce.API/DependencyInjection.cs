@@ -1,6 +1,11 @@
+using System.Reflection;
+using System.Text;
 using FluentValidation;
 using MediatR;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi.Models;
 using MiniCommerce.API.Abstractions.Behaviours;
 using MiniCommerce.API.Abstractions.Handlers;
 using MiniCommerce.API.Contracts;
@@ -62,7 +67,55 @@ public static class DependencyInjection
         services.AddControllers();
         // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
         services.AddEndpointsApiExplorer();
-        services.AddSwaggerGen();
+        services.AddSwaggerGen(options =>
+        {
+            options.SwaggerDoc("v1", new OpenApiInfo
+            {
+                Version = "v1",
+                Title = "MiniCommerce.API",
+                Description = "MiniCommerce.API build on ASP.NET Core Web API 8",
+                TermsOfService = new Uri("https://example.com/terms"),
+                Contact = new OpenApiContact
+                {
+                    Name = "Example Contact",
+                    Url = new Uri("https://example.com/contact"),
+                },
+                License = new OpenApiLicense
+                {
+                    Name = "Example License",
+                    Url = new Uri("https://example.com/license"),
+                }
+            });
+
+            var xmlFilename = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
+            options.IncludeXmlComments(Path.Combine(AppContext.BaseDirectory, xmlFilename));
+            
+            options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+            {
+                In = ParameterLocation.Header,
+                Description = "Please insert a valid token",
+                Name = "Authorization",
+                Type = SecuritySchemeType.Http,
+                BearerFormat = "JWT",
+                Scheme = "Bearer",
+            });
+            
+            options.AddSecurityRequirement(new  OpenApiSecurityRequirement
+            {
+                {
+                    new OpenApiSecurityScheme
+                    {
+                        Reference = new OpenApiReference
+                        {
+                            Type = ReferenceType.SecurityScheme,
+                            Id = "Bearer"
+                        }
+                    },
+                    
+                    new string[]{}
+                }
+            });
+        });
 
         // <-- Register CORS
         services.AddCors(options =>
@@ -99,6 +152,42 @@ public static class DependencyInjection
         // <-- Register Extensions
         services.AddScoped<IMigrationExtension, MigrationExtension>();
         
+        return services;
+    }
+
+    public static IServiceCollection AddJwtAuthentication(this IServiceCollection services,
+        IConfiguration configuration)
+    {
+        var issuer = configuration["JwtSettings:Issuer"]!;
+        var audience = configuration["JwtSettings:Audience"]!;
+        var key = configuration["JwtSettings:Key"]!;
+        
+        services.AddScoped<IJwtTokenHandler, JwtTokenHandler>(_ => 
+            new JwtTokenHandler(issuer, audience, key));
+
+        services.AddAuthentication(options =>
+        {
+            options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+            options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+            options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
+        }). AddJwtBearer(options =>
+        {
+            options.SaveToken = true;
+            options.RequireHttpsMetadata = false; // In production change {true}
+            options.TokenValidationParameters = new TokenValidationParameters
+            {
+                ValidateIssuer = true,
+                ValidateAudience = true,
+                ValidateLifetime = true,
+                ValidateIssuerSigningKey = true,
+                ValidAudience = audience,
+                ValidIssuer = issuer,
+                IssuerSigningKey = new SymmetricSecurityKey(
+                    Encoding.UTF8.GetBytes(key))
+            };
+        });
+        
+        services.AddAuthorization();
         
         return services;
     }

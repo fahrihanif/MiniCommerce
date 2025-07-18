@@ -1,4 +1,5 @@
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MiniCommerce.API.Services.Categories.CreateCategory;
 using MiniCommerce.API.Services.Categories.DeleteCategory;
@@ -10,6 +11,7 @@ namespace MiniCommerce.API.Controllers;
 
 [ApiController]
 [Route("api/categories")]
+[Authorize]
 public class CategoryController(ISender sender) : ControllerBase
 {
     [HttpPut]
@@ -35,6 +37,7 @@ public class CategoryController(ISender sender) : ControllerBase
         return Ok();
     }
     
+    [Authorize(Roles = "Admin")]
     [HttpPost]
     public async Task<IActionResult> Create(CreateCategoryCommand command)
     {
@@ -43,7 +46,17 @@ public class CategoryController(ISender sender) : ControllerBase
         return Ok();
     }
 
+    
+    /// <summary>
+    /// Get all category data.
+    /// </summary>
+    /// <remarks>
+    /// This endpoint allows to Get all Data
+    /// </remarks>
+    /// <returns>Category Data</returns>
     [HttpGet]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> GetAll()
     {
         var query = new GetAllCategoryQuery();

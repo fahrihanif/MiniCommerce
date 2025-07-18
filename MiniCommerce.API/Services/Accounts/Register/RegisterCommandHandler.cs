@@ -24,13 +24,17 @@ public class RegisterCommandHandler : ICommandHandler<RegisterCommand>
 
     public async Task<Result> Handle(RegisterCommand request, CancellationToken cancellationToken)
     {
-        var verificationToken = Convert.ToHexString(RandomNumberGenerator.GetBytes(32));
+        var verificationToken = Convert.ToHexString(
+            RandomNumberGenerator.GetBytes(32));
+        
+        var hashedPassword = BCryptHandler.HashPassword(request.Password);
         
         var account = new Account
         {
             Id = Guid.NewGuid(),
             Email = request.Email,
-            Password = request.Password,
+            Password = hashedPassword,
+            Role = Role.Customer,
             IsEnabled = true,
             IsActive = false,
             RefreshToken = verificationToken
@@ -53,7 +57,23 @@ public class RegisterCommandHandler : ICommandHandler<RegisterCommand>
         var baseUrl = "https://localhost:7057/api/accounts/verify";
         var queryParams = new Dictionary<string, string?> { { "token", verificationToken } };
         var callbackUrl = QueryHelpers.AddQueryString(baseUrl, queryParams);
+        
+        await SendWelcomeEmail(
+            user.FirstName, 
+            user.LastName, 
+            account.Email, 
+            callbackUrl, 
+            cancellationToken);
+        
+        return Result.Success();
+    }
 
+    private async Task SendWelcomeEmail(
+        string firstName, 
+        string lastName, 
+        string email, 
+        string callbackUrl, CancellationToken cancellationToken)
+    {
         var subject = "Welcome! Please activate your account.";
         var body = $"""
                     <h1>Welcome to Mini Commerce!</h1>
@@ -62,11 +82,9 @@ public class RegisterCommandHandler : ICommandHandler<RegisterCommand>
                     """;
 
         await _emailHandler.SendEmailAsync(
-            $"{user.FirstName} {user.LastName}",
-            account.Email, 
+            $"{firstName} {lastName}",
+            email, 
             subject, 
             body);
-        
-        return Result.Success();
     }
 }
